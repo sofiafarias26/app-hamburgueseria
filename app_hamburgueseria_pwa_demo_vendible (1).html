@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>El Desembarco – App Demo</title>
+  <meta name="theme-color" content="#000000" />
+  <style>
+    :root {
+      --color-principal: #000000;
+      --color-secundario: #f4c430;
+      --color-fondo: #f7f7f7;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--color-fondo);
+      color: #222;
+    }
+
+    header {
+      background: var(--color-principal);
+      color: white;
+      padding: 16px;
+      text-align: center;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    .container {
+      padding: 16px;
+    }
+
+    .btn {
+      background: var(--color-secundario);
+      border: none;
+      padding: 12px 16px;
+      font-size: 16px;
+      font-weight: bold;
+      width: 100%;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    .categoria {
+      margin-top: 24px;
+    }
+
+    .categoria h2 {
+      margin-bottom: 8px;
+      border-bottom: 2px solid #ddd;
+      padding-bottom: 4px;
+    }
+
+    .producto {
+      background: white;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .producto h3 {
+      margin: 0;
+    }
+
+    .precio {
+      font-weight: bold;
+      margin-top: 4px;
+    }
+
+    .extras label {
+      display: block;
+      margin: 4px 0;
+    }
+
+    .carrito {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top: 2px solid #ddd;
+      padding: 12px;
+    }
+
+    .carrito-items {
+      max-height: 200px;
+      overflow-y: auto;
+      margin-bottom: 8px;
+    }
+
+    .item-carrito {
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+
+    .total {
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <header>🍔 El Desembarco</header>
+
+  <div class="container" id="menu"></div>
+
+  <div class="carrito">
+    <div class="carrito-items" id="carritoItems"></div>
+    <div class="total" id="total"></div>
+    <button class="btn" onclick="enviarPedido()">Enviar pedido por WhatsApp</button>
+  </div>
+
+  <script>
+    const WHATSAPP = "5491166550574"; // editable por cliente
+
+    const menu = [
+      {
+        categoria: "Hamburguesas",
+        productos: [
+          {
+            nombre: "Nordelta con papas",
+            descripcion: "Carne, lechuga, tomate",
+            precio: 12200,
+            extras: [
+              { nombre: "Cheddar", precio: 800 },
+              { nombre: "Panceta", precio: 900 }
+            ]
+          },
+          {
+            nombre: "Cheese Simple",
+            descripcion: "Carne y queso",
+            precio: 10500,
+            extras: [
+              { nombre: "Cheddar", precio: 800 },
+              { nombre: "Salsa especial", precio: 500 }
+            ]
+          }
+        ]
+      },
+      {
+        categoria: "Entradas",
+        productos: [
+          {
+            nombre: "Papas con cheddar",
+            descripcion: "Papas fritas con cheddar",
+            precio: 6500,
+            extras: []
+          }
+        ]
+      }
+    ];
+
+    let carrito = [];
+
+    function renderMenu() {
+      const contenedor = document.getElementById("menu");
+      contenedor.innerHTML = "";
+
+      menu.forEach(cat => {
+        const divCat = document.createElement("div");
+        divCat.className = "categoria";
+        divCat.innerHTML = `<h2>${cat.categoria}</h2>`;
+
+        cat.productos.forEach(prod => {
+          const divProd = document.createElement("div");
+          divProd.className = "producto";
+
+          let extrasHTML = "";
+          prod.extras.forEach((e, i) => {
+            extrasHTML += `<label><input type='checkbox' data-extra='${e.nombre}' data-precio='${e.precio}'> ${e.nombre} (+$${e.precio})</label>`;
+          });
+
+          divProd.innerHTML = `
+            <h3>${prod.nombre}</h3>
+            <p>${prod.descripcion}</p>
+            <div class='precio'>$${prod.precio}</div>
+            <div class='extras'>${extrasHTML}</div>
+            <button class='btn' onclick='agregarProducto(this, "${prod.nombre}", ${prod.precio})'>Agregar</button>
+          `;
+
+          divCat.appendChild(divProd);
+        });
+
+        contenedor.appendChild(divCat);
+      });
+    }
+
+    function agregarProducto(btn, nombre, precioBase) {
+      const extrasSeleccionados = [];
+      let precioFinal = precioBase;
+
+      const checks = btn.parentElement.querySelectorAll("input[type=checkbox]");
+      checks.forEach(c => {
+        if (c.checked) {
+          extrasSeleccionados.push(c.dataset.extra);
+          precioFinal += Number(c.dataset.precio);
+          c.checked = false;
+        }
+      });
+
+      carrito.push({ nombre, extras: extrasSeleccionados, precio: precioFinal });
+      renderCarrito();
+    }
+
+    function renderCarrito() {
+      const cont = document.getElementById("carritoItems");
+      cont.innerHTML = "";
+      let total = 0;
+
+      carrito.forEach(item => {
+        total += item.precio;
+        cont.innerHTML += `<div class='item-carrito'>• ${item.nombre} ${item.extras.length ? '(' + item.extras.join(', ') + ')' : ''} - $${item.precio}</div>`;
+      });
+
+      document.getElementById("total").innerText = `Total: $${total}`;
+    }
+
+    function enviarPedido() {
+      if (carrito.length === 0) return alert("El carrito está vacío");
+
+      let texto = "Hola! Quiero pedir:%0A";
+      let total = 0;
+
+      carrito.forEach(i => {
+        texto += `• ${i.nombre}`;
+        if (i.extras.length) texto += ` (${i.extras.join(', ')})`;
+        texto += ` - $${i.precio}%0A`;
+        total += i.precio;
+      });
+
+      texto += `%0ATotal: $${total}`;
+      window.open(`https://wa.me/${WHATSAPP}?text=${texto}`, "_blank");
+    }
+
+    renderMenu();
+  </script>
+</body>
+</html>
